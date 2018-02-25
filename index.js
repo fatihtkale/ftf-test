@@ -1,69 +1,247 @@
 // Import the discord.js module
 const Discord = require("discord.js");
+const Fortnite = require('fortnite');
+const client = new Fortnite('fc5c9c9c-0888-4f97-a5ff-1478a29b3c92');
 
 // Create an instance of a Discord client
 const bot = new Discord.Client();
+const config = {
+  prefix: "!",
+  guildId: "371603877289656320",
+  testGuildId: "411959617246068759",
+  testGuildChannel: "412242776562860042"
+};
 
 const fs = require("fs"); // requiering package from node no need to download anything
-
-// Calling the userData file
-
 const userData = JSON.parse(fs.readFileSync("Storage/userData.json", "utf8"));
 const commandsList = fs.readFileSync("Storage/commands.txt", "utf8");
-bot.commands = new Discord.Collection(); // Making a collection for all of our commands
 
-fs.readdir("./commands/", (err, files) => {
-  // Reads the directory of the commands folders
-  if (err) console.error(err); // Sends an error message if it gets an error calling the commands
+var guild; // The Fortnite Team Finder Server
+var channels = {}; // Channels of the server
+var testChannel;
 
-  const jsfiles = files.filter(f => f.split(".").pop() === "js"); // Checks the file extension for 'js', or the text after the . is 'js'
-  if (jsfiles.length <= 0) {
-    return console.log("No commands found...");
-  } else {
-    // returns and sends to console that no commands were found
-    console.log(jsfiles.length + " Commands found.");
-  } // Tells how many commands it found
+class Command {
+  constructor(name, func, args = false) {
+    this.hasArgs = false;
+    this.main = func; // code that runs when command is called
+    this.name = name; // name of the command, prefix + name calls the command
+    this.hasArgs = args;
+  }
+}
+// general handler
+class ChatHandler {
+  constructor() {
+    this.rankwin = new Command("rankwin", (message) => {
+      function getStat(statlist, stat) {
+        return statlist.find(function (e) {
+          return e.stat === stat;
+        });
+      }
+<<<<<<< Updated upstream
 
-  jsfiles.forEach((f, i) => {
-    // Loops through each file
-    const cmds = require(`./commands/${f}`); // Get every choosen file in the js folder
-    console.log(`Command ${f} loading...`); // logs to the console that the command is loading
-    bot.commands.set(cmds.config.command, cmds); // Gets the name of the command and the module in the file
-  });
-});
+      function getRole(rolename) {
+        return message.guild.roles.find("name", rolename);
+      }
 
+      if (userData[message.author.id] === undefined) {
+        message.channel.send("You're not verified - please verify your account before using this command.");
+        return;
+      }
 
+      client.getInfo(userData[message.author.id], 'pc').then(
+=======
+      client.getInfo('faith2720', 'pc').then(
+>>>>>>> Stashed changes
+        data => {
+          //var output = JSON.stringify(data);
+          const wins = getStat(data.lifetimeStats, "wins").value;
 
-// The ready event is vital, it means that your bot will only start reacting to information
-// from Discord _after_ ready is emitted
+          if (wins < 10) {
+            message.channel.send("You need to have at least 10 wins to get a rank.");
+            return;
+          }
+          message.member.removeRoles([getRole("Bronze"), getRole("Silver"), getRole("Gold"), getRole("Platinum"), getRole("Diamond"), getRole("Ruby")]).then(() => {
+            if (wins > 1000) {
+              message.member.addRole(getRole("Ruby"));
+            }
+            else if (wins > 500) {
+              message.member.addRole(getRole("Diamond"));
+            }
+            else if (wins > 250) {
+              message.member.addRole(getRole("Platinum"));
+            }
+            else if (wins > 100) {
+              message.member.addRole(getRole("Gold"));
+            }
+            else if (wins > 50) {
+              message.member.addRole(getRole("Silver"));
+            }
+            else if (wins > 10) {
+              message.member.addRole(getRole("Bronze"));
+            }
+            message.react("👍");
+          });
+        }).catch
+        (e => {
+          message.react("👎");
+          message.author.send("Error: " + e);
+        });
+    });
+
+    this.link = new Command("link", (message) => {
+      function getStat(statlist, stat) {
+        return statlist.find(function (e) {
+          return e.stat === stat;
+        });
+      }
+
+      function getRole(rolename) {
+        return message.guild.roles.find("name", rolename);
+      }
+      let epic = parseArgsClean(message, this.link);
+      let success = true;
+      client.getInfo(epic, "pc").catch(() => { success = false; }).then(
+        data => {
+          //var output = JSON.stringify(data);
+          const wins = getStat(data.lifetimeStats, "wins").value;
+
+          if (wins < 10) {
+            message.react("👎");
+            message.author.send("You need to have at least 10 wins to get a rank.");
+            return;
+          }
+          message.member.removeRoles([getRole("Bronze"), getRole("Silver"), getRole("Gold"), getRole("Platinum"), getRole("Diamond"), getRole("Ruby")]).then(() => {
+            if (wins > 1000) {
+              message.member.addRole(getRole("Ruby"));
+            }
+            else if (wins > 500) {
+              message.member.addRole(getRole("Diamond"));
+            }
+            else if (wins > 250) {
+              message.member.addRole(getRole("Platinum"));
+            }
+            else if (wins > 100) {
+              message.member.addRole(getRole("Gold"));
+            }
+            else if (wins > 50) {
+              message.member.addRole(getRole("Silver"));
+            }
+            else if (wins > 10) {
+              message.member.addRole(getRole("Bronze"));
+            }
+            message.react("👍");
+          });
+
+          if (!success) {
+            message.react("👎");
+            message.author.send("Linked unsuccessfully. Please check that you have the correct username.");
+            return;
+          }
+
+          userData[message.author.id] = epic;
+          fs.writeFileSync("Storage/userData.json", JSON.stringify(userData), { encoding: "utf8" });
+          message.react("👍");
+        }).catch(e => {
+          message.react("👎");
+          message.author.send("Error: " + e + ". Please check if you entered the correct username.");
+        });
+    });
+
+    // !changename -- Changes the user's nickname
+    this.changename = new Command("changename", (message) => {
+      const args = parseArgs(message, this.changename);
+      if (message.channel.name !== "change-my-nickname") {
+        message.react("👎");
+        message.author.send(`Please use ${channels["change-my-nickname"]}.`);
+        return;
+      }
+      message.member.setNickname(args);
+      message.react("👍");
+    }, true);
+
+    this.help = new Command("help", (msg) => {
+      const commandsList = fs.readFileSync("Storage/commands.txt", "utf8");
+
+      message.channel.send(commandsList);
+    });
+
+    this.test = new Command("test", (message) => {
+      const args = parseArgs(message, this.test);
+      message.channel.send(`Changed your name!`);
+      message.member.setNickname(args);
+    }, true);
+
+    this.ver = new Command("ver", (message) => {
+      message.channel.send("20");
+    })
+
+    this.commands = [this.changename, this.test, this.ver, this.rankwin, this.link]; // commands only work after they're added to this array
+  }
+  on_message(message) { }
+}
+function parseArgsSplit(message, command) { // Splits args into array before returning
+  return message.content.replace(config.prefix + command.name, "").trim().split(" ");
+}
+function parseArgs(message, command) { // Just removes the command and returns
+  return message.content.replace(config.prefix + command.name, "").trim();
+}
+function parseArgsClean(message, command) {
+  return message.cleanContent.replace(config.prefix + command.name, "").trim();
+}
+
+const handlers = {
+  ChatHandler: new ChatHandler(),
+};
 
 bot.on("ready", () => {
-  console.log("Bot Launched..."); // Runs when the bot is launched
+  for (let key in handlers) {
+    const val = handlers[key];
+    if (val.on_ready) {
+      val.on_ready();
+    }
+  }
+  loop();
+  for (let i of bot.channels.array()) {
+    if (i.type == "text") {
+      let ch = i;
+      channels[ch.name] = ch;
+    }
+  }
+  guild = bot.guilds.get(config.guildId);
+  testChannel = bot.guilds.get(config.testGuildId).channels.get(config.testGuildChannel);
+  console.log("Bot Launched...");
 
   bot.user.setGame("Fortnite Team Finder");
-
-  // You can put any code you want here, it will run when you turn on the bot
 });
-
-// Create an event listener for messages
+// main loop function, use this for timers
+// this will probably use quite a bit of cpu, sorry :(
+function loop() {
+  for (let key in handlers) {
+    const val = handlers[key];
+    if (val.on_loop) {
+      val.on_loop();
+    }
+  }
+  setTimeout(loop, 50);
+}
+// message/command handler
 bot.on("message", message => {
-  // Variables
-  const msg = message.content;
-  const prefix = "!";
-  const cont = message.content.slice(prefix.length).split(" "); // Slices of the prefix and then puts it in a array
-  const args = cont.slice(1); // Everything after the command in an array
-
-  if (!message.content.startsWith(prefix)) return;
-
-  const cmd = bot.commands.get(cont[0]); // Tries to grab the commands that we called
-  if (cmd) cmd.run(bot, message, args); // This checks if it exsists, if it does it runs the command
-
-  // Ignores the messages that the bot has sent.
-  if (message.author.id === "373852565009596417") {
-    // Checks if the id of the sender is the same as the bot
-    return; // Cancels the events
+  if (message.author.id !== bot.user.id) {
+    for (let key in handlers) {
+      const val = handlers[key];
+      val.on_message(message);
+      if (val.commands) {
+        for (let command of val.commands) {
+          if ((message.content == config.prefix + command.name && !command.hasArgs) || (message.content.startsWith(config.prefix + command.name + " "))) {
+            command.main(message);
+            if (val.on_command)
+              val.on_command(message, command);
+            break;
+          }
+        }
+      }
+    }
   }
 });
 
-// Log our bot in
 bot.login(process.env.TOKEN);
